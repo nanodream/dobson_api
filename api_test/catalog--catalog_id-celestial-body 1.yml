@@ -1,0 +1,20 @@
+info:
+  name: /catalog/:catalog_id/celestial-body
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://{{host}}/v1/catalog/:catalog_id/celestial-body
+  params:
+    - name: catalog_id
+      value: "123"
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,943 @@
+openapi: 3.0.3
+info:
+  title: E-Commerce API
+  description: |
+    Complete API for an e-commerce platform covering users, products,
+    orders and payments.
+
+    ## Authentication
+    This API uses OAuth2 with scopes to control access to resources.
+
+    ## Error handling
+    All errors follow RFC 9457 (Problem Details for HTTP APIs)
+    and are served with the `application/problem+json` media type.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production
+  - url: https://staging-api.example.com/v1
+    description: Staging
+
+components:
+  # OAuth2 configuration
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/oauth/authorize
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            # User scopes
+            "users:read": "Read user information"
+            "users:write": "Modify user information"
+            "users:admin": "Administer users"
+
+            # Product scopes
+            "products:read": "Read products"
+            "products:write": "Create and modify products"
+            "products:admin": "Administer products"
+
+            # Order scopes
+            "orders:read": "Read orders"
+            "orders:write": "Create and modify orders"
+            "orders:admin": "Administer orders"
+
+            # Payment scopes
+            "payments:read": "Read payments"
+            "payments:write": "Process payments"
+
+  # Reusable error responses (RFC 9457, application/problem+json)
+  responses:
+    BadRequest:
+      description: "Invalid request (incorrect parameters, body or state transition)"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.example.com/problems/validation-error"
+            title: "Validation error"
+            status: 400
+            detail: "The request body contains invalid fields"
+            instance: "/users"
+            errors:
+              - field: "email"
+                message: "Invalid email format"
+                code: "INVALID_FORMAT"
+
+    Unauthorized:
+      description: "Not authenticated"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "about:blank"
+            title: "Unauthorized"
+            status: 401
+            detail: "The access token is missing or expired"
+
+    Forbidden:
+      description: "Insufficient permissions (missing scope)"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "about:blank"
+            title: "Forbidden"
+            status: 403
+            detail: "The 'users:read' scope is required"
+
+    NotFound:
+      description: "Resource not found"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.example.com/problems/resource-not-found"
+            title: "Resource not found"
+            status: 404
+            detail: "No resource matches this identifier"
+
+    Conflict:
+      description: "Conflict with the current state of the resource"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.example.com/problems/email-already-used"
+            title: "Email already in use"
+            status: 409
+            detail: "A user with this email already exists"
+
+    InternalServerError:
+      description: "Internal server error"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "about:blank"
+            title: "Internal Server Error"
+            status: 500
+
+  # Data schemas
+  schemas:
+    # Error handling - RFC 9457 (obsoletes RFC 7807)
+    ProblemDetails:
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: "about:blank"
+          description: "URI identifying the problem type (about:blank when no specific semantics apply)"
+          example: "https://api.example.com/problems/validation-error"
+        title:
+          type: string
+          description: "Short, stable summary of the problem type"
+          example: "Validation error"
+        status:
+          type: integer
+          description: "HTTP status code of the response"
+          example: 400
+        detail:
+          type: string
+          description: "Explanation specific to this occurrence of the problem"
+          example: "The 'email' field is required"
+        instance:
+          type: string
+          format: uri-reference
+          description: "URI identifying this specific occurrence of the problem"
+          example: "/users"
+        errors:
+          type: array
+          description: "Extension member: list of per-field validation errors"
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "Invalid email format"
+              code:
+                type: string
+                example: "INVALID_FORMAT"
+      additionalProperties: true
+
+    # Business models
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique user identifier"
+        email:
+          type: string
+          format: email
+          description: "Email address"
+        firstName:
+          type: string
+          description: "First name"
+          minLength: 1
+          maxLength: 50
+        lastName:
+          type: string
+          description: "Last name"
+          minLength: 1
+          maxLength: 50
+        phone:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+          description: "Phone number in international format"
+        isActive:
+          type: boolean
+          description: "Whether the user is active"
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+          description: "Creation date"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "Last modification date"
+
+    UserCreate:
+      type: object
+      required:
+        - email
+        - firstName
+        - lastName
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        phone:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+        password:
+          type: string
+          minLength: 8
+          description: "Password (minimum 8 characters)"
+
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - categoryId
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+          multipleOf: 0.01
+        categoryId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, inactive, discontinued]
+        stock:
+          type: integer
+          minimum: 0
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Order:
+      type: object
+      required:
+        - id
+        - userId
+        - status
+        - totalAmount
+        - items
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+        totalAmount:
+          type: number
+          format: decimal
+          minimum: 0
+          multipleOf: 0.01
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+              - unitPrice
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+                minimum: 1
+              unitPrice:
+                type: number
+                format: decimal
+                minimum: 0
+                multipleOf: 0.01
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Address:
+      type: object
+      required:
+        - street
+        - city
+        - postalCode
+        - country
+      properties:
+        street:
+          type: string
+          minLength: 1
+          maxLength: 255
+        city:
+          type: string
+          minLength: 1
+          maxLength: 100
+        postalCode:
+          type: string
+          minLength: 1
+          maxLength: 20
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: '^[A-Z]{2}$'
+          description: "ISO 3166-1 alpha-2 country code"
+
+    # Paginated responses
+    PaginatedUsers:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    PaginatedProducts:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: "Current page number"
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: "Number of items per page"
+        total:
+          type: integer
+          minimum: 0
+          description: "Total number of items"
+        totalPages:
+          type: integer
+          minimum: 0
+          description: "Total number of pages"
+        hasNext:
+          type: boolean
+          description: "Whether a next page exists"
+        hasPrevious:
+          type: boolean
+          description: "Whether a previous page exists"
+
+  # Reusable parameters
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: "Page number (default: 1)"
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: "Items per page (default: 20, max: 100)"
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    UserIdParam:
+      name: userId
+      in: path
+      required: true
+      description: "User identifier"
+      schema:
+        type: string
+        format: uuid
+
+    ProductIdParam:
+      name: productId
+      in: path
+      required: true
+      description: "Product identifier"
+      schema:
+        type: string
+        format: uuid
+
+    OrderIdParam:
+      name: orderId
+      in: path
+      required: true
+      description: "Order identifier"
+      schema:
+        type: string
+        format: uuid
+
+# API routes
+paths:
+  # === USER RESOURCES ===
+  /users:
+    get:
+      tags:
+        - Users
+      summary: "List users"
+      description: "Retrieves a paginated list of users"
+      security:
+        - oauth2: ["users:read"]
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          description: "Search by name or email"
+          required: false
+          schema:
+            type: string
+            minLength: 2
+        - name: isActive
+          in: query
+          description: "Filter by active status"
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: "Users retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsers'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Users
+      summary: "Create a user"
+      description: "Creates a new user"
+      security:
+        - oauth2: ["users:write"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: "User created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          headers:
+            Location:
+              description: "URI of the new user"
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: "Get a user"
+      description: "Retrieves the information of a specific user"
+      security:
+        - oauth2: ["users:read"]
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: "User retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Users
+      summary: "Replace a user"
+      description: "Fully updates an existing user"
+      security:
+        - oauth2: ["users:write"]
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+                - lastName
+                - email
+              properties:
+                firstName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                lastName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: "User updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Users
+      summary: "Partially update a user"
+      description: "Partially updates an existing user"
+      security:
+        - oauth2: ["users:write"]
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                lastName:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  pattern: '^\+[1-9]\d{1,14}$'
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: "User updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Users
+      summary: "Delete a user"
+      description: "Deletes a user (soft delete)"
+      security:
+        - oauth2: ["users:admin"]
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: "User deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # === PRODUCT RESOURCES ===
+  /products:
+    get:
+      tags:
+        - Products
+      summary: "List products"
+      description: "Retrieves a paginated list of products"
+      security:
+        - oauth2: ["products:read"]
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: categoryId
+          in: query
+          description: "Filter by category"
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: "Filter by status"
+          schema:
+            type: string
+            enum: [active, inactive, discontinued]
+        - name: minPrice
+          in: query
+          description: "Minimum price"
+          schema:
+            type: number
+            minimum: 0
+        - name: maxPrice
+          in: query
+          description: "Maximum price"
+          schema:
+            type: number
+            minimum: 0
+      responses:
+        '200':
+          description: "Products retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProducts'
+
+    post:
+      tags:
+        - Products
+      summary: "Create a product"
+      description: "Creates a new product"
+      security:
+        - oauth2: ["products:write"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+                - categoryId
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                description:
+                  type: string
+                  maxLength: 2000
+                price:
+                  type: number
+                  format: decimal
+                  minimum: 0
+                  multipleOf: 0.01
+                categoryId:
+                  type: string
+                  format: uuid
+                stock:
+                  type: integer
+                  minimum: 0
+                  default: 0
+      responses:
+        '201':
+          description: "Product created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: "Get a product"
+      description: "Retrieves the information of a specific product"
+      security:
+        - oauth2: ["products:read"]
+      parameters:
+        - $ref: '#/components/parameters/ProductIdParam'
+      responses:
+        '200':
+          description: "Product retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # === ORDER RESOURCES ===
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: "List orders"
+      description: "Retrieves a paginated list of orders"
+      security:
+        - oauth2: ["orders:read"]
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: userId
+          in: query
+          description: "Filter by user"
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: "Filter by status"
+          schema:
+            type: string
+            enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+      responses:
+        '200':
+          description: "Orders retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Orders
+      summary: "Create an order"
+      description: "Creates a new order"
+      security:
+        - oauth2: ["orders:write"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - items
+                - shippingAddress
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - productId
+                      - quantity
+                    properties:
+                      productId:
+                        type: string
+                        format: uuid
+                      quantity:
+                        type: integer
+                        minimum: 1
+                shippingAddress:
+                  $ref: '#/components/schemas/Address'
+      responses:
+        '201':
+          description: "Order created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
+  /orders/{orderId}:
+    get:
+      tags:
+        - Orders
+      summary: "Get an order"
+      description: "Retrieves the information of a specific order"
+      security:
+        - oauth2: ["orders:read"]
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+      responses:
+        '200':
+          description: "Order retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Orders
+      summary: "Update the status of an order"
+      description: "Updates the status of an existing order"
+      security:
+        - oauth2: ["orders:write"]
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [confirmed, processing, shipped, delivered, cancelled]
+      responses:
+        '200':
+          description: "Order status updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+# Organization by tags
+tags:
+  - name: Users
+    description: "User and profile management"
+  - name: Products
+    description: "Product catalog management"
+  - name: Orders
+    description: "Order management and lifecycle"
+  - name: Payments
+    description: "Payment processing and billing"

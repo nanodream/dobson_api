@@ -1,0 +1,20 @@
+[package]
+name = "dobson_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.9"
+chrono = "0.4.45"
+rmcp = { version = "3.5.1", features = [ "elicitation", "transport-streamable-http-server" ] }
+rust_decimal = "1.43.0"
+schemars = { version = "1.2.2", features = [ "chrono04", "rust_decimal1" ] }
+serde = { version = "1.0.229", features = [ "derive" ] }
+sideral = { path = "../sideral"}
+sqlite = { version = "0.37.3", features = [ "linkage", "bundled"] }
+tokio = { version = "1.53.1", features = ["full"] }
+tracing = { version = "0.1.44" }
+tracing-subscriber = "0.3.23"
+uuid = { version = "1.27.0", features = [ "v4" ] }
+business_object = { version = "0.1.0", path = "../business_object"}
+business_object_derive = { version = "0.1.0", path = "../business_object_derive"}

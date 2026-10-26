@@ -1,0 +1,23 @@
+info:
+  name: /catalog
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://{{host}}/v1/catalog
+  body:
+    type: json
+    data: |-
+      {
+        "id": "123",
+        "description": "Another test"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

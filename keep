@@ -1,0 +1,75 @@
+
+
+/**
+
+    // Arcturus
+
+    let acturus = CelestialBody::new(
+
+            String::from("Acturus"),
+
+            Angle::from_time(
+
+                14, 16, dec!(52.4)
+
+            ),
+
+            Angle::from_degree_time(
+
+                19, 02, dec!(44.0))
+
+    );
+
+
+
+    // Earth position
+
+    let longitude = Angle::new(dec!(-1.599535));
+
+    let latitude = Angle::new(dec!(47.365724));
+
+
+
+    let start = Utc::now();
+
+    for tick  in 0..100 {
+
+
+
+        // Eval altaz coordinates
+
+        let altaz_coordinate = acturus.to_altaz_coordinate(
+
+            &longitude,
+
+            &latitude
+
+        );
+
+
+
+        // Displa
+
+        //println!("{}", altaz_coordinate);
+
+
+
+        // Wait a second
+
+        thread::sleep(time::Duration::from_millis(100));
+
+    }
+
+    let end = Utc::now();
+
+
+
+    println!("{}", end);
+
+    println!("{}", start);
+
+
+
+
+
+ */

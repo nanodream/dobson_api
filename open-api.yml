@@ -1,0 +1,890 @@
+openapi: '3.0.3'
+
+info:
+  title: Dobson API
+  description: |
+    Full API to drive dobson telescope through the sky.
+  version: '1.0'
+  contact:
+    name: Damien Retailleau
+    email: dretailleau@gmail.com
+
+servers:
+  - url: http://localhost:3000
+
+tags:
+  - name: Catalog
+    description: |
+      Manage celestial body catalogs.
+  - name: Celestial body
+    description: |
+      Manage celestial bodies identities, coordinates and can track trajectories
+  - name: Tracker
+    description: |
+      Tracks celestial bodies in the sky based on altitude-azimut coordinates
+
+paths:
+  /catalog/:
+    get:
+      tags:
+        - Catalog
+      summary: List catalogs
+      description: Look for avaiblable celestial body catalogs
+      security:
+        - oauth2: ["catalog:list"]
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - name: filter
+          in: query
+          description: "Filter catalog list on description content"
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Catalogs retrieved successfully"
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/PaginatedCatalogRepresentation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+      - Catalog
+      summary: Create new catalog
+      description: Create new celestial body catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogData'
+      responses:
+        '201':
+          description: "Catalog created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogRepresentation'
+          headers:
+            Location:
+              description: "New catalog full URL"
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /catalog/{catalog_id}:
+    parameters:
+      - $ref: '#/components/parameters/CatalogIdParam'
+    get:
+      tags:
+        - Catalog
+      summary: Get catalog
+      description: Read celestial body catalog detailed information
+      responses:
+        '200':
+          description: "Celestial body catalog representation returned successfully"
+          content:
+            application/json:
+              schema:
+                $ref : '#/components/schemas/CatalogRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Catalog
+      summary: Update catalog
+      description: "Update celestial body catalog information"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogData'
+      responses:
+        '200':
+          description: "Celestila body catalog updated sucessfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Catalog
+      summary: Delete catalog
+      description: Delete celestial body catalog
+      responses:
+        '204':
+          description: "Catalog deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /catalog/by-reference/{catalog_reference}:
+    get:
+      tags:
+        - Catalog
+      summary: Get catalog by reference
+      description: Read celestial body catalog detailed information by reference
+      parameters:
+      - $ref: '#/components/parameters/CatalogReferenceParam'
+      responses:
+        '200':
+          description: "Celestial body catalog representation returned successfully"
+          content:
+            application/json:
+              schema:
+                $ref : '#/components/schemas/CatalogRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /catalog/{catalog_id}/celestial-body:
+    parameters:
+      - $ref: '#/components/parameters/CatalogIdParam'
+    get:
+      tags:
+        - Celestial body
+      summary: Search celestial bodies
+      description: Search for available celestial bodies in given catalog
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: "Found celestial bodies for the given search criterions"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCelestialBodyRepresentation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Celestial body
+      summary: "Create new celestial body"
+      description: Create new celestial body in catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CelestialBodyData'
+      responses:
+        '201':
+          description: "Celestial body created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialBodyRepresentation'
+          headers:
+            Location:
+              description: "New celestial body full URI"
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /catalog/{catalog_id}/celestial-body/{celestial_body_id}:
+    parameters:
+      - $ref: '#/components/parameters/CatalogIdParam'
+      - $ref: '#/components/parameters/CelestialBodyIdParam'
+    get:
+      tags:
+        - Celestial body
+      summary: "Get celestial body"
+      description: "Read celestial body information"
+      responses:
+        '200':
+          description: "Celestial body representation returned successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialBodyRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Celestial body
+      summary: Update celestial body
+      description: Update celestial body information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CelestialBodyData'
+      responses:
+        '200':
+          description: "Celestial body updated sucessfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialBodyRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Celestial body
+      summary: Delete celestial body
+      description: Delete celestial body
+      responses:
+        '204':
+          description: "Celestial body deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /catalog/{catalog_id}/celestial-body/by-code/{celestial_body_code}:
+    parameters:
+      - $ref: '#/components/parameters/CatalogIdParam'
+      - $ref: '#/components/parameters/CelestialBodyCodeParam'
+    get:
+      tags:
+        - Celestial body
+      summary: "Get celestial body by code"
+      description: "Read celestial body information by code"
+      responses:
+        '200':
+          description: "Celestial body representation returned successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialBodyRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /catalog/{catalog_id}/celestial-body/{celestial_body_id}/tracker:
+    parameters:
+      - $ref: '#/components/parameters/CatalogIdParam'
+      - $ref: '#/components/parameters/CelestialBodyIdParam'
+    post:
+      tags:
+        - Tracker
+      summary: "Create new tracker"
+      description: "Create new celestial body tracker"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CelestialBodyTrackerData'
+      responses:
+        '201':
+          description: "Celestial body tracker created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialBodyTrackerRepresentation'
+          headers:
+            Location:
+              description: "New celestial body tracker full URI"
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+        - Tracker
+      summary: "List trackers"
+      description: "List trackers available on celestial body"
+      parameters:
+      - name: status
+        in: query
+        required: false
+        description: "Filter tracker listing by status"
+        schema:
+          type: string
+      responses:
+        '200':
+          description: "Found celestial body trackers"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CelestialBodyTrackerRepresentation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /catalog/{catalog_id}/celestial-body/{celestial_body_id}/tracker/{tracker_id}:
+    parameters:
+      - $ref: '#/components/parameters/CatalogIdParam'
+      - $ref: '#/components/parameters/CelestialBodyIdParam'
+      - $ref: '#/components/parameters/TrackerIdParam'
+    get:
+      tags:
+        - Tracker
+      summary: Get tracker
+      description: Get celestial body tracker
+      responses:
+        '200':
+          description: "Celestial body tracker representation"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialBodyTrackerRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Tracker
+      summary: "Update tracker"
+      description: Update celestial body tracker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CelestialBodyTrackerData'
+      responses:
+        '200':
+          description: "Celestial body tracker updated sucessfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialBodyTrackerRepresentation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Tracker
+      summary: "Delete tracker"
+      description: Remove celestial body tracker
+      responses:
+        '204':
+          description: "Celestial body tracker deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+
+  # Reusable error responses (RFC 9457, application/problem+json)
+  responses:
+    BadRequest:
+      description: "Invalid request (incorrect parameters, body or state transition)"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.example.com/problems/validation-error"
+            title: "Validation error"
+            status: 400
+            detail: "The request body contains invalid fields"
+            instance: "/ressource"
+            errors:
+              - field: "field1"
+                message: "Invalid field1 format"
+                code: "INVALID_FORMAT"
+
+    Unauthorized:
+      description: "Not authenticated"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "about:blank"
+            title: "Unauthorized"
+            status: 401
+            detail: "The access token is missing or expired"
+
+    Forbidden:
+      description: "Insufficient permissions (missing scope)"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "about:blank"
+            title: "Forbidden"
+            status: 403
+            detail: "The 'ressources:read' scope is required"
+
+    NotFound:
+      description: "Resource not found"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.example.com/problems/resource-not-found"
+            title: "Resource not found"
+            status: 404
+            detail: "No resource matches this identifier"
+
+    Conflict:
+      description: "Conflict with the current state of the resource"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.example.com/problems/email-already-used"
+            title: "Field1 already in use"
+            status: 409
+            detail: "A ressource with this field1 already exists"
+
+    InternalServerError:
+      description: "Internal server error"
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "about:blank"
+            title: "Internal Server Error"
+            status: 500
+
+  schemas:
+    # Error handling - RFC 9457 (obsoletes RFC 7807)
+    ProblemDetails:
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: "about:blank"
+          description: "URI identifying the problem type (about:blank when no specific semantics apply)"
+          example: "https://api.example.com/problems/validation-error"
+        title:
+          type: string
+          description: "Short, stable summary of the problem type"
+          example: "Validation error"
+        status:
+          type: integer
+          description: "HTTP status code of the response"
+          example: 400
+        detail:
+          type: string
+          description: "Explanation specific to this occurrence of the problem"
+          example: "The 'xxxx' field is required"
+        instance:
+          type: string
+          format: uri-reference
+          description: "URI identifying this specific occurrence of the problem"
+          example: "/xxx"
+        errors:
+          type: array
+          description: "Extension member: list of per-field validation errors"
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "field1"
+              message:
+                type: string
+                example: "Invalid field1 format"
+              code:
+                type: string
+                example: "INVALID_FORMAT"
+      additionalProperties: true
+
+    # Catalog
+    CatalogRepresentation:
+      type: object
+      allOf:
+      - $ref: "#/components/schemas/CatalogData"
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique technical catalog identifier"
+    CatalogData:
+      type: object
+      required:
+      - reference
+      properties:
+        reference:
+          type: string
+          #pattern: '^CAT-[0-9]{4}-[0-9A-Z]{5}$'
+          description: "Unique human readable catalog identifier"
+        description:
+          type: string
+          description: "Catalog description"
+    PaginatedCatalogRepresentation:
+      type: object
+      required:
+        - representations
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogRepresentation'
+        page:
+          $ref: '#/components/schemas/Pagination'
+
+    # Celestial body
+    CelestialBodyRepresentation:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/CelestialBodyData'
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique technical celestial body identifier"
+    CelestialBodyData:
+      type: object
+      required:
+      - code
+      - coordinates
+      properties:
+        code:
+          type: string
+          description: "Unique reference in the catalog"
+        name:
+          type: string
+          description: "Name of the celestial body in catalog"
+        classification:
+          type: string
+          description: "Type of celestial body : Star, Supernova, ..."
+        constellation:
+          type: string
+          description: "Constellation celestial body is part of"
+        image:
+          type: string
+          format: binary
+        magnitude:
+          type: number
+          format: decimal
+          description: "Magnitude of celestial body"
+        size:
+          type: object
+          description: "Angular size of the visible rectangle from earth"
+          properties:
+            width:
+              type: number
+              format: decimal
+              description: "Rectangle angular witdh in minutes"
+            height:
+              type: number
+              format: decimal
+              description: "Rectangle angular height in minutes"
+        distance:
+          type: number
+          format: decimal
+          description: "Distance from earth in light year"
+        coordinates:
+          $ref: '#/components/schemas/CelestialCoordinates'
+        _links:
+          type: array
+          description: "links to other catalog where celestial body is indexed"
+          items:
+            type: string
+            format: uri
+    PaginatedCelestialBodyRepresentation:
+      type: object
+      required:
+        - representations
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CelestialBodyRepresentation'
+        page:
+          $ref: '#/components/schemas/Pagination'
+
+    # Celestial body tracker
+    CelestialBodyTrackerRepresentation:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/CelestialBodyTrackerData'
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique technical celestial body tracker identifier"
+    CelestialBodyTrackerData:
+      type: object
+      properties:
+        status:
+          type: string
+          description: "Tracker status"
+        startTime:
+          type: string
+          format: date-time
+          description: "Date time tracking is starting"
+        events:
+          type: string
+          format: uri
+          description: "URI from which tracking events are available"
+    PaginatedCelestialBodyTrackerRepresentation:
+      type: object
+      required:
+        - representations
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CelestialBodyTrackerRepresentation'
+        page:
+          $ref: '#/components/schemas/Pagination'
+
+    # Common types
+    CelestialCoordinates:
+      type: object
+      required:
+      - rightAscension
+      - declination
+      description: "Celestial coordinates"
+      properties:
+        rightAscension:
+          $ref: '#/components/schemas/SideralHour'
+          description: "Right ascension as a sideral hour"
+        declination:
+          $ref: '#/components/schemas/Angle'
+          description: "Declination as an angle"
+    SideralHour:
+      type: object
+      required:
+      - hours
+      - minutes
+      - seconds
+      properties:
+        hours:
+          type: integer
+          description: "Number of hour"
+        minutes:
+          type: integer
+          description: "Number of minutes"
+        seconds:
+          type: number
+          format: decimal
+          description: "Seconds in minute fraction"
+    Angle:
+      type: object
+      required:
+      - degrees
+      - minutes
+      - seconds
+      properties:
+        degrees:
+          type: integer
+          description: "Number of degrees"
+        minutes:
+          type: integer
+          description: "Number of minutes"
+        seconds:
+          type: number
+          format: decimal
+          description: "Seconds in minute fraction"
+
+    # Common pagination
+    Pagination:
+      type: object
+      required:
+        - page
+        - size
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: "Current page number"
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: "Number of items per page"
+        total:
+          type: integer
+          minimum: 0
+          description: "Total number of items"
+        totalPages:
+          type: integer
+          minimum: 0
+          description: "Total number of pages"
+
+  # Reusable parameters
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: "Page number (default: 1)"
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    SizeParam:
+      name: size
+      in: query
+      description: "Items per page (default: 20, max: 100)"
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    CatalogIdParam:
+      name: catalog_id
+      in: path
+      required: true
+      description: "Catalog identifier"
+      schema:
+        type: string
+        format: uuid
+
+    CatalogReferenceParam:
+      name: catalog_reference
+      in: path
+      required: true
+      description: "Catalog reference"
+      schema:
+        type: string
+
+    CelestialBodyIdParam:
+      name: celestial_body_id
+      in: path
+      required: true
+      description: "Celestial body identifier"
+      schema:
+        type: string
+        format: uuid
+
+    CelestialBodyCodeParam:
+      name: celestial_body_code
+      in: path
+      required: true
+      description: "Celestial body code"
+      schema:
+        type: string
+
+    TrackerIdParam:
+      name: tracker_id
+      in: path
+      required: true
+      description: "Celestial body tracker identifier"
+      schema:
+        type: string
+        format: uuid

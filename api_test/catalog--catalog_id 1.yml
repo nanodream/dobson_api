@@ -1,0 +1,26 @@
+info:
+  name: /catalog/:catalog_id
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: http://{{host}}/v1/catalog/:catalog_id
+  params:
+    - name: catalog_id
+      value: "123"
+      type: path
+  body:
+    type: json
+    data: |-
+      {
+        "description": "Description à jour 2"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
